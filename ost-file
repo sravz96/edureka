@@ -1,0 +1,50 @@
+#create a log file
+$logfile = "$env:USERPROFILE\Desktop\OST.log"
+
+#creating log
+function log( $message, [String]$destination = $logfile) {
+ 
+     $timestamp   = Get-Date 
+     $Formatted   = "timestamp=""$timestamp""><[$Message]>"  
+     Write-Host $message 
+     Add-Content -LiteralPath $destination $Formatted  -Force
+ 
+}
+#Stops all Outlook process' and deletes .ost file then prompts to run setup.
+Function RebuildEmail
+{
+    $a = new-object -comobject wscript.shell 
+    [System.Windows.MessageBox]::Show("This will stop Outlook and Skype for Business,`nRemoves the local copy of your email and will resynchronize from the exchange server. `nDO YOU WANT TO CONTINUE?",'warning','YesNoCancel','warning')  
+
+    try
+    {
+        #check if outlook is open and close it. 
+        if((Get-Process -Name ("OUTLOOK","lync")) -ne $null)  
+        {
+            while(stop-Process -Name ("OUTLOOK","lync")) 
+            {
+                #Remove OST files
+                $OstPath = $Env:LocalAppData + "\Microsoft" + "\Outlook"
+                $OSTs = Get-ChildItem $OstPath | where { $_.Extension -eq ".ost"} 
+                #$OSTs | Remove-Item
+                
+                log "The local copy of your email was successfully removed."
+                log $_.exception.message
+            }
+        }
+        else 
+        {
+            $a = new-object -comobject wscript.shell 
+            log "Outlook is unable to close."
+            log $_.exception.message
+        }  
+ 
+    }
+    catch{
+    
+    log "EXCEPTION OCCURED and the exception is::" $_.exception.message
+    }
+    
+    Start-Process outlook
+    Start-Process lync
+} 
